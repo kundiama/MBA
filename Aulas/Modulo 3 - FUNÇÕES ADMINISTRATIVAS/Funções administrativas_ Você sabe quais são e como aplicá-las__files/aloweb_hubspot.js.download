@@ -1,0 +1,70 @@
+if (!window.jQuery) {
+  var script = document.createElement("script");
+  script.src = "https://code.jquery.com/jquery-2.2.4.min.js";
+  script.onload = function() {};
+
+  document.head.appendChild(script);
+}
+
+window.alowebHubspot = {
+  ignorar: ["hs_context"],
+  onFormSubmit: function() {
+    return function($form, ev) {
+      alowebHubspot.formSerializado = $form.serializeArray();
+    };
+  },
+  onFormSubmitted: function(camposEscondidos) {
+    return function() {
+      let dados = camposEscondidos;
+      let teclia = !!camposEscondidos.redirect;
+
+      for (var i = 0; i < alowebHubspot.formSerializado.length; i++) {
+        var name = alowebHubspot.formSerializado[i].name;
+        var value = alowebHubspot.formSerializado[i].value;
+
+        if (alowebHubspot.ignorar.indexOf(name) === -1) {
+          dados[name] = value;
+        }
+      }
+
+      //   if (document.location.href.indexOf("teclia") != -1) {
+      //     dados["token"] = "OXTf431fOzBa1NuNjw5A";
+      //     dados["redirect"] = "https://wa.me/5511941715760?text=[message]";
+      //   }
+
+      $.ajax({
+        method: "POST",
+        url: teclia
+          ? "https://app.teclia.com/api/chat/prelimiary_profiles"
+          : "https://v4.aloweb.com.br/api/integracoes/whatsapp_web_metadados",
+        headers: {
+          Accept: "application/json",
+        },
+        data: dados,
+        success: function(res) {
+          var script = document.createElement("script");
+          script.src = "//static.criteo.net/js/ld/ld.js";
+          script.onload = function() {
+            var analytics = document.createElement("script");
+            var inline = document.createTextNode(
+              'window.criteo_q = window.criteo_q || [];window.criteo_q.push(    { event: "setAccount", account: 37490 },    { event: "setEmail", email: "" },    { event: "setSiteType", type: /iPad/.test(navigator.userAgent) ? "t" : /Mobile|iP(hone|od)|Android|BlackBerry|IEMobile|Silk/.test(navigator.userAgent) ? "m" : "d" },    { event: "trackTransaction" , id: new Date().getTime(), item: [        { id: "1", price: 1, quantity: 1 }    ]});'
+            );
+            analytics.appendChild(inline);
+            document.head.appendChild(analytics);
+
+            setTimeout(function() {
+              location.href = res.redirect;
+            }, 500);
+          };
+
+          document.head.appendChild(script);
+        },
+        error: function() {
+          window.alert(
+            "Ops, não foi possível iniciar a conversa por Whatsapp. Por favor, tente novamente mais tarde."
+          );
+        },
+      });
+    };
+  },
+};
